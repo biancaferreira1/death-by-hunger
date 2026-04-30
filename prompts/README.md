@@ -4,7 +4,7 @@ This folder manages prompt-driven work executed by collaborators.
 
 ## Layout
 
-- `queue/` - pending prompt tasks
+- `queue/` - pending prompt tasks (includes `.gitkeep` so this folder stays in Git when the queue is empty)
 - `runs/` - execution records for completed/in-progress tasks
 - `templates/` - reusable prompt and handoff templates
 
