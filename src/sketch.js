@@ -1,5 +1,6 @@
 (() => {
   const CONFIG = {
+    SIZE: 400,
     GRID: 10,
     TOTAL_PIXELS: 23000,
     MAX_DROPS: 23000,
@@ -16,10 +17,6 @@
     SIM_DEATHS_PER_SEC: 2.4,
   };
 
-  /** Original layout the sprite and stem proportions were tuned for. */
-  const REF_LAYOUT_W = 400;
-  const REF_LAYOUT_H = 400;
-
   const STRAW_COLORS = [
     [244, 215, 126],
     [217, 177, 82],
@@ -27,8 +24,11 @@
   ];
   const OUTLINE_COLOR = [24, 21, 18];
 
-  let canvasW = 400;
-  let canvasH = 400;
+  let canvasW = CONFIG.SIZE;
+  let canvasH = CONFIG.SIZE;
+  let viewScale = 1;
+  let viewOffsetX = 0;
+  let viewOffsetY = 0;
 
   let wheatPixels = [];
   let attachedIndices = [];
@@ -40,14 +40,23 @@
 
   let groundY = 0;
   let stemRect = {};
-  let layoutScaleX = 1;
-  let layoutScaleY = 1;
-  let lastCanvasW = REF_LAYOUT_W;
-  let lastCanvasH = REF_LAYOUT_H;
 
   function syncCanvasToWindow(p) {
     canvasW = Math.max(1, Math.floor(p.windowWidth));
     canvasH = Math.max(1, Math.floor(p.windowHeight));
+    viewScale = Math.min(canvasW, canvasH) / CONFIG.SIZE;
+    viewOffsetX = (canvasW - CONFIG.SIZE * viewScale) * 0.5;
+    viewOffsetY = (canvasH - CONFIG.SIZE * viewScale) * 0.5;
+  }
+
+  function beginScene(p) {
+    p.push();
+    p.translate(viewOffsetX, viewOffsetY);
+    p.scale(viewScale);
+  }
+
+  function endScene(p) {
+    p.pop();
   }
 
   function cellKey(c, r) {
@@ -155,9 +164,6 @@
   }
 
   function buildWheatPixels(p) {
-    layoutScaleX = canvasW / REF_LAYOUT_W;
-    layoutScaleY = canvasH / REF_LAYOUT_H;
-
     const allCells = buildReferenceWheatCells();
     const cellCount = Math.max(1, allCells.length);
 
@@ -167,8 +173,8 @@
     for (let i = 0; i < CONFIG.TOTAL_PIXELS; i++) {
       const cell = allCells[i % cellCount];
       const jitter = ((i % 3) - 1) * 0.75;
-      const anchorX = (cell.c * CONFIG.GRID + jitter) * layoutScaleX;
-      const anchorY = cell.r * CONFIG.GRID * layoutScaleY;
+      const anchorX = cell.c * CONFIG.GRID + jitter;
+      const anchorY = cell.r * CONFIG.GRID;
 
       wheatPixels.push({
         anchorX,
@@ -193,22 +199,14 @@
     }
 
     stemRect = {
-      x: canvasW * 0.5,
+      x: CONFIG.SIZE * 0.5,
       yBottom: groundY,
-      yTop: canvasH * 0.40,
-      w: CONFIG.GRID * 3 * layoutScaleX,
+      yTop: CONFIG.SIZE * 0.40,
+      w: CONFIG.GRID * 3,
     };
-
-    lastCanvasW = canvasW;
-    lastCanvasH = canvasH;
   }
 
   function remapAttachedAnchors(p) {
-    const ow = Math.max(1, lastCanvasW);
-    const oh = Math.max(1, lastCanvasH);
-    const nx = Math.max(1, canvasW);
-    const ny = Math.max(1, canvasH);
-
     const prevStates = wheatPixels.map((px) => ({
       state: px.state,
       x: px.x,
@@ -224,10 +222,10 @@
       if (!prev) continue;
       wheatPixels[i].state = prev.state;
       if (prev.state === "falling" || prev.state === "landed") {
-        wheatPixels[i].x = prev.x * (nx / ow);
-        wheatPixels[i].y = prev.y * (ny / oh);
-        wheatPixels[i].vx = prev.vx * (nx / ow);
-        wheatPixels[i].vy = prev.vy * (ny / oh);
+        wheatPixels[i].x = prev.x;
+        wheatPixels[i].y = prev.y;
+        wheatPixels[i].vx = prev.vx;
+        wheatPixels[i].vy = prev.vy;
       }
     }
 
@@ -303,18 +301,34 @@
     }
   }
 
-  function drawBackground(p) {
+  function drawViewportBackground(p) {
     p.background(34, 43, 56);
     p.noStroke();
+
+    const horizonY = viewOffsetY + CONFIG.SIZE * 0.75 * viewScale;
+    const groundTopY = viewOffsetY + groundY * viewScale;
+
     p.fill(57, 69, 86);
-    p.rect(0, canvasH * 0.75, canvasW, canvasH * 0.25);
+    p.rect(0, horizonY, canvasW, canvasH - horizonY);
+
+    p.fill(78, 70, 59);
+    p.rect(0, groundTopY, canvasW, canvasH - groundTopY);
+    p.stroke(110, 96, 78, 160);
+    p.line(0, groundTopY, canvasW, groundTopY);
+    p.noStroke();
+  }
+
+  function drawBackground(p) {
+    p.noStroke();
+    p.fill(57, 69, 86);
+    p.rect(0, CONFIG.SIZE * 0.75, CONFIG.SIZE, CONFIG.SIZE * 0.25);
   }
 
   function drawGround(p) {
     p.fill(78, 70, 59);
-    p.rect(0, groundY, canvasW, canvasH - groundY);
+    p.rect(0, groundY, CONFIG.SIZE, CONFIG.SIZE - groundY);
     p.stroke(110, 96, 78, 160);
-    p.line(0, groundY, canvasW, groundY);
+    p.line(0, groundY, CONFIG.SIZE, groundY);
     p.noStroke();
   }
 
@@ -349,12 +363,7 @@
       let c = px.colorAttached;
       if (px.state === "landed") c = px.colorLanded;
       p.fill(c[0], c[1], c[2]);
-      p.rect(
-        px.x,
-        px.y,
-        CONFIG.GRID * layoutScaleX,
-        CONFIG.GRID * layoutScaleY
-      );
+      p.rect(px.x, px.y, px.size, px.size);
     }
 
     // Pass 2: draw falling pixels last so they remain visible in front.
@@ -363,12 +372,7 @@
       if (px.state !== "falling") continue;
       const c = px.colorAttached;
       p.fill(c[0], c[1], c[2]);
-      p.rect(
-        px.x,
-        px.y,
-        CONFIG.GRID * layoutScaleX,
-        CONFIG.GRID * layoutScaleY
-      );
+      p.rect(px.x, px.y, px.size, px.size);
     }
   }
 
@@ -392,7 +396,7 @@
   }
 
   function initScene(p, keepProgress = false) {
-    groundY = canvasH * CONFIG.GROUND_RATIO;
+    groundY = CONFIG.SIZE * CONFIG.GROUND_RATIO;
     if (!keepProgress) {
       droppedCount = 0;
       deathsCount = 0;
@@ -418,8 +422,7 @@
     };
 
     p.draw = () => {
-      drawBackground(p);
-      drawGround(p);
+      drawViewportBackground(p);
 
       if (CONFIG.USE_SIMULATED_DATA) simulateDeaths(p);
 
@@ -430,9 +433,14 @@
 
       releaseDropsStep(p);
       updatePixelsPhysics(p);
+
+      beginScene(p);
+      drawBackground(p);
+      drawGround(p);
       drawStem(p);
       drawPixels(p);
       drawHUD(p);
+      endScene(p);
     };
 
     p.windowResized = () => {
