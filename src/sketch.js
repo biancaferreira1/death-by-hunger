@@ -1,6 +1,5 @@
 (() => {
   const CONFIG = {
-    SIZE: 400,
     GRID: 10,
     TOTAL_PIXELS: 23000,
     MAX_DROPS: 23000,
@@ -24,6 +23,9 @@
   ];
   const OUTLINE_COLOR = [24, 21, 18];
 
+  let canvasW = 400;
+  let canvasH = 400;
+
   let wheatPixels = [];
   let attachedIndices = [];
   let dropQueue = 0;
@@ -34,6 +36,11 @@
 
   let groundY = 0;
   let stemRect = {};
+
+  function syncCanvasToWindow(p) {
+    canvasW = Math.max(1, Math.floor(p.windowWidth));
+    canvasH = Math.max(1, Math.floor(p.windowHeight));
+  }
 
   function cellKey(c, r) {
     return `${c},${r}`;
@@ -175,9 +182,9 @@
     }
 
     stemRect = {
-      x: CONFIG.SIZE * 0.5,
+      x: canvasW * 0.5,
       yBottom: groundY,
-      yTop: CONFIG.SIZE * 0.40,
+      yTop: canvasH * 0.40,
       w: CONFIG.GRID * 3,
     };
   }
@@ -281,14 +288,14 @@
     p.background(34, 43, 56);
     p.noStroke();
     p.fill(57, 69, 86);
-    p.rect(0, CONFIG.SIZE * 0.75, CONFIG.SIZE, CONFIG.SIZE * 0.25);
+    p.rect(0, canvasH * 0.75, canvasW, canvasH * 0.25);
   }
 
   function drawGround(p) {
     p.fill(78, 70, 59);
-    p.rect(0, groundY, CONFIG.SIZE, CONFIG.SIZE - groundY);
+    p.rect(0, groundY, canvasW, canvasH - groundY);
     p.stroke(110, 96, 78, 160);
-    p.line(0, groundY, CONFIG.SIZE, groundY);
+    p.line(0, groundY, canvasW, groundY);
     p.noStroke();
   }
 
@@ -356,7 +363,7 @@
   }
 
   function initScene(p, keepProgress = false) {
-    groundY = CONFIG.SIZE * CONFIG.GROUND_RATIO;
+    groundY = canvasH * CONFIG.GROUND_RATIO;
     if (!keepProgress) {
       droppedCount = 0;
       deathsCount = 0;
@@ -371,7 +378,8 @@
 
   const sketch = (p) => {
     p.setup = () => {
-      p.createCanvas(CONFIG.SIZE, CONFIG.SIZE);
+      syncCanvasToWindow(p);
+      p.createCanvas(canvasW, canvasH);
       p.pixelDensity(1);
       p.noStroke();
       initScene(p);
@@ -399,8 +407,8 @@
     };
 
     p.windowResized = () => {
-      // Keep a fixed NFT frame (400x400) while preserving progress.
-      p.resizeCanvas(CONFIG.SIZE, CONFIG.SIZE);
+      syncCanvasToWindow(p);
+      p.resizeCanvas(canvasW, canvasH);
       initScene(p, true);
     };
 
