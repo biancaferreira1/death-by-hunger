@@ -47,3 +47,7 @@ When integrating with real data, call:
 `window.setDeathsCount(number)`
 
 from your API layer to update the visualization.
+
+## Prompt-driven collaboration
+
+Contributors can run queued tasks and record outcomes under `prompts/`. See `prompts/README.md` and `docs/collaboration/RUNBOOK.md` for the standard flow.

@@ -1,0 +1,6 @@
+README.md
+prompts/queue/2026-04-30-example-task.md
+prompts/runs/2026-04-30-example-task/changed-files.txt
+prompts/runs/2026-04-30-example-task/prompt.md
+prompts/runs/2026-04-30-example-task/result-summary.md
+prompts/runs/2026-04-30-example-task/verification.md
