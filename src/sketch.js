@@ -16,6 +16,10 @@
     SIM_DEATHS_PER_SEC: 2.4,
   };
 
+  /** Original layout the sprite and stem proportions were tuned for. */
+  const REF_LAYOUT_W = 400;
+  const REF_LAYOUT_H = 400;
+
   const STRAW_COLORS = [
     [244, 215, 126],
     [217, 177, 82],
@@ -36,6 +40,10 @@
 
   let groundY = 0;
   let stemRect = {};
+  let layoutScaleX = 1;
+  let layoutScaleY = 1;
+  let lastCanvasW = REF_LAYOUT_W;
+  let lastCanvasH = REF_LAYOUT_H;
 
   function syncCanvasToWindow(p) {
     canvasW = Math.max(1, Math.floor(p.windowWidth));
@@ -147,6 +155,9 @@
   }
 
   function buildWheatPixels(p) {
+    layoutScaleX = canvasW / REF_LAYOUT_W;
+    layoutScaleY = canvasH / REF_LAYOUT_H;
+
     const allCells = buildReferenceWheatCells();
     const cellCount = Math.max(1, allCells.length);
 
@@ -156,8 +167,8 @@
     for (let i = 0; i < CONFIG.TOTAL_PIXELS; i++) {
       const cell = allCells[i % cellCount];
       const jitter = ((i % 3) - 1) * 0.75;
-      const anchorX = cell.c * CONFIG.GRID + jitter;
-      const anchorY = cell.r * CONFIG.GRID;
+      const anchorX = (cell.c * CONFIG.GRID + jitter) * layoutScaleX;
+      const anchorY = cell.r * CONFIG.GRID * layoutScaleY;
 
       wheatPixels.push({
         anchorX,
@@ -185,11 +196,19 @@
       x: canvasW * 0.5,
       yBottom: groundY,
       yTop: canvasH * 0.40,
-      w: CONFIG.GRID * 3,
+      w: CONFIG.GRID * 3 * layoutScaleX,
     };
+
+    lastCanvasW = canvasW;
+    lastCanvasH = canvasH;
   }
 
   function remapAttachedAnchors(p) {
+    const ow = Math.max(1, lastCanvasW);
+    const oh = Math.max(1, lastCanvasH);
+    const nx = Math.max(1, canvasW);
+    const ny = Math.max(1, canvasH);
+
     const prevStates = wheatPixels.map((px) => ({
       state: px.state,
       x: px.x,
@@ -205,10 +224,10 @@
       if (!prev) continue;
       wheatPixels[i].state = prev.state;
       if (prev.state === "falling" || prev.state === "landed") {
-        wheatPixels[i].x = prev.x;
-        wheatPixels[i].y = prev.y;
-        wheatPixels[i].vx = prev.vx;
-        wheatPixels[i].vy = prev.vy;
+        wheatPixels[i].x = prev.x * (nx / ow);
+        wheatPixels[i].y = prev.y * (ny / oh);
+        wheatPixels[i].vx = prev.vx * (nx / ow);
+        wheatPixels[i].vy = prev.vy * (ny / oh);
       }
     }
 
@@ -330,7 +349,12 @@
       let c = px.colorAttached;
       if (px.state === "landed") c = px.colorLanded;
       p.fill(c[0], c[1], c[2]);
-      p.rect(px.x, px.y, px.size, px.size);
+      p.rect(
+        px.x,
+        px.y,
+        CONFIG.GRID * layoutScaleX,
+        CONFIG.GRID * layoutScaleY
+      );
     }
 
     // Pass 2: draw falling pixels last so they remain visible in front.
@@ -339,7 +363,12 @@
       if (px.state !== "falling") continue;
       const c = px.colorAttached;
       p.fill(c[0], c[1], c[2]);
-      p.rect(px.x, px.y, px.size, px.size);
+      p.rect(
+        px.x,
+        px.y,
+        CONFIG.GRID * layoutScaleX,
+        CONFIG.GRID * layoutScaleY
+      );
     }
   }
 
