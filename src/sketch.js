@@ -44,9 +44,9 @@
     figures = [];
     for (let i = 0; i < CONFIG.CROWD_SIZE; i++) {
       const size = p.random(6, 11);
-      const xPad = size * 0.52;
-      const yTop = CONFIG.PAD + size * 1.22;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - size * 0.92;
+      const xPad = size * 0.58;
+      const yTop = CONFIG.PAD + size * 1.28;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - size * 1.05;
       figures.push({
         x: p.random(CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad),
         y: p.random(yTop, Math.max(yTop + 1, yBot)),
@@ -81,7 +81,7 @@
         }
       } else if (fig.state === "ascending") {
         fig.y -= CONFIG.ASCEND_SPEED;
-        if (fig.y < -fig.size * 2.2) {
+        if (fig.y < -fig.size * 2.35) {
           figures.splice(i, 1);
         }
       }
@@ -89,8 +89,9 @@
   }
 
   /**
-   * Pill torso (domed shoulder line, straight sides, small foot) plus round head
-   * and thick arms hanging from the upper sides — one closed path.
+   * Reference-style silhouette: vertical oval head blending into rounded shoulders,
+   * rectangular torso, inverted-U crotch, tapered legs with rounded feet, and
+   * separate pill arms with a narrow gap from the torso.
    */
   function drawPersonIcon(p, fig) {
     const s = fig.size;
@@ -106,116 +107,127 @@
       fillC = 0;
     }
 
-    const sw = Math.max(1.75, s * 0.16);
-    const w = 0.31 * s;
-    const headCy = -0.9 * s;
-    const headR = 0.225 * s;
-    const domeTop = -0.52 * s;
-    const ySideTop = -0.32 * s;
-    const ySideBot = 0.55 * s;
-    const yToe = 0.7 * s;
+    const sw = Math.max(1.6, s * 0.13);
+
+    const headCy = -1.02 * s;
+    const headRx = 0.165 * s;
+    const headRy = 0.21 * s;
+    const wSh = 0.33 * s;
+    const wWa = 0.29 * s;
+    const yWa = -0.02 * s;
+    const wHi = 0.31 * s;
+    const yHi = 0.06 * s;
+    const yThighTop = 0.2 * s;
+    const xLegOutT = 0.26 * s;
+    const xLegOutA = 0.2 * s;
+    const footY = 1.08 * s;
+    const yCrotchInner = 0.26 * s;
+
+    const gap = 0.04 * s;
+    const armW = 0.095 * s;
+    const armY1 = -0.64 * s;
+    const armY2 = 0.34 * s;
+    const armCx = wSh + gap + armW * 0.5;
+    const armMidY = (armY1 + armY2) * 0.5;
 
     p.push();
     p.translate(fig.x, fig.y);
     p.scale(breath);
-
-    p.noStroke();
-    p.fill(0);
-    p.rectMode(p.CENTER);
-    p.rect(0, yToe + s * 0.04, s * 0.22, s * 0.1, s * 0.03);
 
     p.stroke(0);
     p.strokeWeight(sw);
     p.strokeJoin(p.ROUND);
     p.strokeCap(p.ROUND);
     p.fill(fillC);
-    p.rectMode(p.CORNER);
 
     p.beginShape();
-    p.vertex(0, headCy - headR);
+    p.vertex(0, headCy - headRy);
     p.bezierVertex(
-      headR * 1.12,
-      headCy - headR * 0.88,
-      headR * 1.08,
-      headCy + headR * 0.35,
-      w,
-      headCy + headR * 0.9
+      headRx * 1.28,
+      headCy - headRy * 0.9,
+      headRx * 1.18,
+      headCy + headRy * 0.45,
+      wSh,
+      headCy + headRy * 0.82
     );
     p.bezierVertex(
-      w * 1.02,
-      (headCy + headR + domeTop) * 0.5,
-      w * 0.65,
-      ySideTop - s * 0.08,
-      w,
-      ySideTop
+      wSh * 1.03,
+      headCy + headRy * 0.92,
+      wWa * 1.06,
+      yWa - s * 0.1,
+      wWa,
+      yWa
     );
     p.bezierVertex(
-      w + s * 0.12,
-      ySideTop + s * 0.06,
-      w + s * 0.18,
-      s * 0.12,
-      w + s * 0.15,
-      s * 0.4
+      wHi * 1.02,
+      yWa + s * 0.06,
+      xLegOutT,
+      yHi,
+      xLegOutT,
+      yThighTop
     );
     p.bezierVertex(
-      w + s * 0.1,
-      s * 0.52,
-      w + s * 0.02,
-      s * 0.48,
-      w,
-      s * 0.18
+      xLegOutT * 0.97,
+      footY - s * 0.22,
+      xLegOutA,
+      footY,
+      xLegOutA * 0.42,
+      footY
     );
-    p.vertex(w, ySideBot);
     p.bezierVertex(
-      w * 0.88,
-      ySideBot + s * 0.11,
-      s * 0.1,
-      ySideBot + s * 0.13,
+      0.05 * s,
+      footY - s * 0.03,
+      0.048 * s,
+      0.38 * s,
       0,
-      yToe
+      yCrotchInner
     );
     p.bezierVertex(
-      -s * 0.1,
-      ySideBot + s * 0.13,
-      -w * 0.88,
-      ySideBot + s * 0.11,
-      -w,
-      ySideBot
-    );
-    p.vertex(-w, s * 0.18);
-    p.bezierVertex(
-      -w - s * 0.02,
-      s * 0.48,
-      -w - s * 0.1,
-      s * 0.52,
-      -w - s * 0.15,
-      s * 0.4
+      -0.048 * s,
+      0.38 * s,
+      -0.05 * s,
+      footY - s * 0.03,
+      -xLegOutA * 0.42,
+      footY
     );
     p.bezierVertex(
-      -w - s * 0.18,
-      s * 0.12,
-      -w - s * 0.12,
-      ySideTop + s * 0.06,
-      -w,
-      ySideTop
+      -xLegOutA,
+      footY,
+      -xLegOutT * 0.97,
+      footY - s * 0.22,
+      -xLegOutT,
+      yThighTop
     );
     p.bezierVertex(
-      -w * 0.65,
-      ySideTop - s * 0.08,
-      -w * 1.02,
-      (headCy + headR + domeTop) * 0.5,
-      -w,
-      headCy + headR * 0.9
+      -xLegOutT,
+      yHi,
+      -wHi * 1.02,
+      yWa + s * 0.06,
+      -wWa,
+      yWa
     );
     p.bezierVertex(
-      -headR * 1.08,
-      headCy + headR * 0.35,
-      -headR * 1.12,
-      headCy - headR * 0.88,
+      -wWa * 1.06,
+      yWa - s * 0.1,
+      -wSh * 1.03,
+      headCy + headRy * 0.92,
+      -wSh,
+      headCy + headRy * 0.82
+    );
+    p.bezierVertex(
+      -headRx * 1.18,
+      headCy + headRy * 0.45,
+      -headRx * 1.28,
+      headCy - headRy * 0.9,
       0,
-      headCy - headR
+      headCy - headRy
     );
     p.endShape(p.CLOSE);
+
+    p.rectMode(p.CENTER);
+    p.rect(armCx, armMidY, armW, armY2 - armY1, armW * 0.5);
+    p.rect(-armCx, armMidY, armW, armY2 - armY1, armW * 0.5);
+    p.rectMode(p.CORNER);
 
     p.pop();
   }
@@ -223,9 +235,9 @@
   function remapCrowd(p) {
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
-      const xPad = fig.size * 0.52;
-      const yTop = CONFIG.PAD + fig.size * 1.22;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - fig.size * 0.92;
+      const xPad = fig.size * 0.58;
+      const yTop = CONFIG.PAD + fig.size * 1.28;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - fig.size * 1.05;
       fig.x = p.constrain(fig.x, CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad);
       fig.y = p.constrain(fig.y, yTop, Math.max(yTop + 1, yBot));
     }
