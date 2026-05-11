@@ -44,9 +44,9 @@
     figures = [];
     for (let i = 0; i < CONFIG.CROWD_SIZE; i++) {
       const size = p.random(6, 11);
-      const xPad = size * 0.94;
-      const yTop = CONFIG.PAD + size * 2.5;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - size * 1.55;
+      const xPad = size * 0.52;
+      const yTop = CONFIG.PAD + size * 1.22;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - size * 0.92;
       figures.push({
         x: p.random(CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad),
         y: p.random(yTop, Math.max(yTop + 1, yBot)),
@@ -81,7 +81,7 @@
         }
       } else if (fig.state === "ascending") {
         fig.y -= CONFIG.ASCEND_SPEED;
-        if (fig.y < -fig.size * 5.2) {
+        if (fig.y < -fig.size * 2.2) {
           figures.splice(i, 1);
         }
       }
@@ -89,8 +89,8 @@
   }
 
   /**
-   * “Bubble person” icon: thick black outline, white fill, rounded head and
-   * limbs, arms hanging straight, legs with a crotch V — drawn in code (Bezier).
+   * Pill torso (domed shoulder line, straight sides, small foot) plus round head
+   * and thick arms hanging from the upper sides — one closed path.
    */
   function drawPersonIcon(p, fig) {
     const s = fig.size;
@@ -106,7 +106,14 @@
       fillC = 0;
     }
 
-    const sw = Math.max(1.85, s * 0.195);
+    const sw = Math.max(1.75, s * 0.16);
+    const w = 0.31 * s;
+    const headCy = -0.9 * s;
+    const headR = 0.225 * s;
+    const domeTop = -0.52 * s;
+    const ySideTop = -0.32 * s;
+    const ySideBot = 0.55 * s;
+    const yToe = 0.7 * s;
 
     p.push();
     p.translate(fig.x, fig.y);
@@ -114,111 +121,99 @@
 
     p.noStroke();
     p.fill(0);
-    p.ellipse(0, s * 1.38, s * 1.22, s * 0.32);
+    p.rectMode(p.CENTER);
+    p.rect(0, yToe + s * 0.04, s * 0.22, s * 0.1, s * 0.03);
 
     p.stroke(0);
     p.strokeWeight(sw);
     p.strokeJoin(p.ROUND);
     p.strokeCap(p.ROUND);
     p.fill(fillC);
+    p.rectMode(p.CORNER);
 
     p.beginShape();
-    p.vertex(0, -s * 2.32);
+    p.vertex(0, headCy - headR);
     p.bezierVertex(
-      s * 0.58,
-      -s * 2.26,
-      s * 0.82,
-      -s * 1.62,
-      s * 0.86,
-      -s * 0.98
+      headR * 1.12,
+      headCy - headR * 0.88,
+      headR * 1.08,
+      headCy + headR * 0.35,
+      w,
+      headCy + headR * 0.9
     );
     p.bezierVertex(
-      s * 0.94,
-      -s * 0.58,
-      s * 0.98,
-      s * 0.08,
-      s * 0.88,
-      s * 0.5
+      w * 1.02,
+      (headCy + headR + domeTop) * 0.5,
+      w * 0.65,
+      ySideTop - s * 0.08,
+      w,
+      ySideTop
     );
     p.bezierVertex(
-      s * 0.78,
-      s * 0.62,
-      s * 0.58,
-      s * 0.66,
-      s * 0.4,
-      s * 0.55
+      w + s * 0.12,
+      ySideTop + s * 0.06,
+      w + s * 0.18,
+      s * 0.12,
+      w + s * 0.15,
+      s * 0.4
     );
     p.bezierVertex(
-      s * 0.42,
-      s * 0.74,
-      s * 0.44,
-      s * 1.02,
-      s * 0.32,
-      s * 1.24
+      w + s * 0.1,
+      s * 0.52,
+      w + s * 0.02,
+      s * 0.48,
+      w,
+      s * 0.18
     );
+    p.vertex(w, ySideBot);
     p.bezierVertex(
-      s * 0.2,
-      s * 1.34,
-      s * 0.08,
-      s * 1.14,
-      s * 0.06,
-      s * 0.84
-    );
-    p.bezierVertex(
-      s * 0.04,
-      s * 0.56,
-      s * 0.02,
-      s * 0.44,
+      w * 0.88,
+      ySideBot + s * 0.11,
+      s * 0.1,
+      ySideBot + s * 0.13,
       0,
-      s * 0.38
+      yToe
     );
     p.bezierVertex(
-      -s * 0.02,
-      s * 0.44,
-      -s * 0.04,
-      s * 0.56,
-      -s * 0.06,
-      s * 0.84
+      -s * 0.1,
+      ySideBot + s * 0.13,
+      -w * 0.88,
+      ySideBot + s * 0.11,
+      -w,
+      ySideBot
+    );
+    p.vertex(-w, s * 0.18);
+    p.bezierVertex(
+      -w - s * 0.02,
+      s * 0.48,
+      -w - s * 0.1,
+      s * 0.52,
+      -w - s * 0.15,
+      s * 0.4
     );
     p.bezierVertex(
-      -s * 0.08,
-      s * 1.14,
-      -s * 0.2,
-      s * 1.34,
-      -s * 0.32,
-      s * 1.24
+      -w - s * 0.18,
+      s * 0.12,
+      -w - s * 0.12,
+      ySideTop + s * 0.06,
+      -w,
+      ySideTop
     );
     p.bezierVertex(
-      -s * 0.44,
-      s * 1.02,
-      -s * 0.42,
-      s * 0.74,
-      -s * 0.4,
-      s * 0.55
+      -w * 0.65,
+      ySideTop - s * 0.08,
+      -w * 1.02,
+      (headCy + headR + domeTop) * 0.5,
+      -w,
+      headCy + headR * 0.9
     );
     p.bezierVertex(
-      -s * 0.58,
-      s * 0.66,
-      -s * 0.78,
-      s * 0.62,
-      -s * 0.88,
-      s * 0.5
-    );
-    p.bezierVertex(
-      -s * 0.98,
-      s * 0.08,
-      -s * 0.94,
-      -s * 0.58,
-      -s * 0.86,
-      -s * 0.98
-    );
-    p.bezierVertex(
-      -s * 0.82,
-      -s * 1.62,
-      -s * 0.58,
-      -s * 2.26,
+      -headR * 1.08,
+      headCy + headR * 0.35,
+      -headR * 1.12,
+      headCy - headR * 0.88,
       0,
-      -s * 2.32
+      headCy - headR
     );
     p.endShape(p.CLOSE);
 
@@ -228,9 +223,9 @@
   function remapCrowd(p) {
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
-      const xPad = fig.size * 0.94;
-      const yTop = CONFIG.PAD + fig.size * 2.5;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - fig.size * 1.55;
+      const xPad = fig.size * 0.52;
+      const yTop = CONFIG.PAD + fig.size * 1.22;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - fig.size * 0.92;
       fig.x = p.constrain(fig.x, CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad);
       fig.y = p.constrain(fig.y, yTop, Math.max(yTop + 1, yBot));
     }
