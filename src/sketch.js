@@ -10,6 +10,8 @@
     SIZE: 400,
     CROWD_SIZE: 300,
     PAD: 18,
+    /** Display width multiplier relative to fig.size (asset scales proportionally). */
+    PERSON_DRAW_W: 2.2,
     /** Inner fill lerp per frame while dying (white → black). */
     DYING_STEP: 0.06,
     /** Upward motion after inner fill is black. */
@@ -21,6 +23,9 @@
   let viewScale = 1;
   let viewOffsetX = 0;
   let viewOffsetY = 0;
+
+  let personImg = null;
+  let personAspect = 1;
 
   let figures = [];
 
@@ -42,13 +47,23 @@
     p.pop();
   }
 
+  function personDrawW(size) {
+    return size * CONFIG.PERSON_DRAW_W;
+  }
+
+  function personDrawH(size) {
+    return personDrawW(size) * personAspect;
+  }
+
   function initCrowd(p) {
     figures = [];
     for (let i = 0; i < CONFIG.CROWD_SIZE; i++) {
       const size = p.random(6, 11);
-      const xPad = size * 0.95;
-      const yTop = CONFIG.PAD + size * 2.35;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - size * 1.65;
+      const dw = personDrawW(size);
+      const dh = personDrawH(size);
+      const xPad = dw * 0.5;
+      const yTop = CONFIG.PAD + dh * 0.52;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
       figures.push({
         x: p.random(CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad),
         y: p.random(yTop, Math.max(yTop + 1, yBot)),
@@ -86,132 +101,52 @@
         }
       } else if (fig.state === "ascending") {
         fig.y -= CONFIG.ASCEND_SPEED;
-        if (fig.y < -fig.size * 5) {
+        if (fig.y < -personDrawH(fig.size) * 0.65) {
           figures.splice(i, 1);
         }
       }
     }
   }
 
-  /**
-   * Thick-outline icon person: one filled silhouette (not stick limbs), black
-   * stroke, white interior when alive; solid black shadow oval under the feet.
-   */
-  function drawPersonIcon(p, fig) {
-    const s = fig.size;
+  /** Raster person asset (`assets/person.png`), drawn as loaded — no vector redraw. */
+  function drawPersonAsset(p, fig) {
+    if (!personImg || personImg.width <= 0) return;
+
     const breath =
       fig.state === "alive"
         ? 1 + 0.035 * Math.sin(p.millis() * 0.0012 + fig.phase)
         : 1;
 
-    let fillC = 255;
-    if (fig.state === "dying") {
-      fillC = p.lerp(255, 0, fig.fillAmt);
-    } else if (fig.state === "ascending") {
-      fillC = 0;
-    }
-
-    const sw = Math.max(1.8, s * 0.2);
+    const dw = personDrawW(fig.size);
+    const dh = personDrawH(fig.size);
 
     p.push();
     p.translate(fig.x, fig.y);
     p.scale(breath);
+    p.imageMode(p.CENTER);
 
-    p.noStroke();
-    p.fill(0);
-    p.ellipse(0, s * 1.38, s * 1.32, s * 0.36);
+    if (fig.state === "alive") {
+      p.noTint();
+    } else if (fig.state === "dying") {
+      const g = p.lerp(255, 0, fig.fillAmt);
+      p.tint(g, g, g);
+    } else {
+      p.tint(0, 0, 0);
+    }
 
-    p.stroke(0);
-    p.strokeWeight(sw);
-    p.strokeJoin(p.ROUND);
-    p.strokeCap(p.ROUND);
-    p.fill(fillC);
-
-    p.beginShape();
-    p.vertex(0, -s * 2.15);
-    p.bezierVertex(
-      s * 0.52,
-      -s * 2.1,
-      s * 0.7,
-      -s * 1.62,
-      s * 0.76,
-      -s * 1.05
-    );
-    p.bezierVertex(
-      s * 0.92,
-      -s * 0.72,
-      s * 0.96,
-      -s * 0.12,
-      s * 0.86,
-      s * 0.38
-    );
-    p.bezierVertex(
-      s * 0.82,
-      s * 0.55,
-      s * 0.52,
-      s * 0.58,
-      s * 0.36,
-      s * 0.5
-    );
-    p.bezierVertex(
-      s * 0.4,
-      s * 0.78,
-      s * 0.44,
-      s * 1.05,
-      s * 0.32,
-      s * 1.22
-    );
-    p.bezierVertex(
-      s * 0.16,
-      s * 1.28,
-      -s * 0.16,
-      s * 1.28,
-      -s * 0.32,
-      s * 1.22
-    );
-    p.bezierVertex(
-      -s * 0.44,
-      s * 1.05,
-      -s * 0.4,
-      s * 0.78,
-      -s * 0.36,
-      s * 0.5
-    );
-    p.bezierVertex(
-      -s * 0.52,
-      s * 0.58,
-      -s * 0.82,
-      s * 0.55,
-      -s * 0.86,
-      s * 0.38
-    );
-    p.bezierVertex(
-      -s * 0.96,
-      -s * 0.12,
-      -s * 0.92,
-      -s * 0.72,
-      -s * 0.76,
-      -s * 1.05
-    );
-    p.bezierVertex(
-      -s * 0.7,
-      -s * 1.62,
-      -s * 0.52,
-      -s * 2.1,
-      0,
-      -s * 2.15
-    );
-    p.endShape(p.CLOSE);
-
+    p.image(personImg, 0, 0, dw, dh);
+    p.noTint();
     p.pop();
   }
 
   function remapCrowd(p) {
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
-      const xPad = fig.size * 0.95;
-      const yTop = CONFIG.PAD + fig.size * 2.35;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - fig.size * 1.65;
+      const dw = personDrawW(fig.size);
+      const dh = personDrawH(fig.size);
+      const xPad = dw * 0.5;
+      const yTop = CONFIG.PAD + dh * 0.52;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
       fig.x = p.constrain(fig.x, CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad);
       fig.y = p.constrain(
         fig.y,
@@ -222,10 +157,15 @@
   }
 
   const sketch = (p) => {
+    p.preload = () => {
+      personImg = p.loadImage("assets/person.png");
+    };
+
     p.setup = () => {
       syncCanvasToWindow(p);
       p.createCanvas(canvasW, canvasH);
       p.pixelDensity(1);
+      personAspect = personImg.height / personImg.width;
       initCrowd(p);
 
       window.triggerDeath = triggerDeath;
@@ -238,7 +178,7 @@
 
       beginScene(p);
       for (let i = 0; i < figures.length; i++) {
-        drawPersonIcon(p, figures[i]);
+        drawPersonAsset(p, figures[i]);
       }
       endScene(p);
     };
