@@ -10,9 +10,19 @@
     SIZE: 400,
     CROWD_SIZE: 300,
     PAD: 18,
+    /** Scene units wide per figure (height follows spritesheet frame aspect). */
+    SPRITE_DRAW_W: 2.35,
     DYING_STEP: 0.06,
     ASCEND_SPEED: 5,
+    SPRITE_COLS: 8,
+    SPRITE_ROWS: 5,
   };
+
+  const ROW_WALK_RIGHT = 0;
+  const ROW_WALK_LEFT = 1;
+  const ROW_WALK_UP = 2;
+  const ROW_WALK_DOWN = 3;
+  const ROW_SPAWN_DIE = 4;
 
   let canvasW = CONFIG.SIZE;
   let canvasH = CONFIG.SIZE;
@@ -20,7 +30,23 @@
   let viewOffsetX = 0;
   let viewOffsetY = 0;
 
+  let spriteSheet = null;
+  let spriteFrameW = 1;
+  let spriteFrameH = 1;
+  let spriteAspect = 1;
+
   let figures = [];
+
+  function keyBlackTransparent(img, threshold = 32) {
+    img.loadPixels();
+    const px = img.pixels;
+    for (let i = 0; i < px.length; i += 4) {
+      if (px[i] <= threshold && px[i + 1] <= threshold && px[i + 2] <= threshold) {
+        px[i + 3] = 0;
+      }
+    }
+    img.updatePixels();
+  }
 
   function syncCanvasToWindow(p) {
     canvasW = Math.max(1, Math.floor(p.windowWidth));
@@ -40,13 +66,23 @@
     p.pop();
   }
 
+  function personDrawW(size) {
+    return size * CONFIG.SPRITE_DRAW_W;
+  }
+
+  function personDrawH(size) {
+    return personDrawW(size) * spriteAspect;
+  }
+
   function initCrowd(p) {
     figures = [];
     for (let i = 0; i < CONFIG.CROWD_SIZE; i++) {
       const size = p.random(6, 11);
-      const xPad = size * 0.58;
-      const yTop = CONFIG.PAD + size * 1.28;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - size * 1.05;
+      const dw = personDrawW(size);
+      const dh = personDrawH(size);
+      const xPad = dw * 0.52;
+      const yTop = CONFIG.PAD + dh * 0.58;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
       figures.push({
         x: p.random(CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad),
         y: p.random(yTop, Math.max(yTop + 1, yBot)),
@@ -81,173 +117,87 @@
         }
       } else if (fig.state === "ascending") {
         fig.y -= CONFIG.ASCEND_SPEED;
-        if (fig.y < -fig.size * 2.35) {
+        if (fig.y < -personDrawH(fig.size) * 0.55) {
           figures.splice(i, 1);
         }
       }
     }
   }
 
-  /**
-   * Reference-style silhouette: vertical oval head blending into rounded shoulders,
-   * rectangular torso, inverted-U crotch, tapered legs with rounded feet, and
-   * separate pill arms with a narrow gap from the torso.
-   */
-  function drawPersonIcon(p, fig) {
-    const s = fig.size;
-    const breath =
-      fig.state === "alive"
-        ? 1 + 0.035 * Math.sin(p.millis() * 0.0012 + fig.phase)
-        : 1;
+  /** 8×5 spritesheet: rows = walk R/L/up/down, spawn/die. Drawn one frame per figure. */
+  function drawPersonSprite(p, fig) {
+    if (!spriteSheet || spriteSheet.width <= 0) return;
 
-    let fillC = 255;
-    if (fig.state === "dying") {
-      fillC = p.lerp(255, 0, fig.fillAmt);
-    } else if (fig.state === "ascending") {
-      fillC = 0;
+    const fw = spriteFrameW;
+    const fh = spriteFrameH;
+    let row = ROW_WALK_DOWN;
+    let col = 0;
+
+    if (fig.state === "alive") {
+      row = ROW_WALK_DOWN;
+      col = Math.floor(fig.phase * 1000 + p.millis() * 0.065) % CONFIG.SPRITE_COLS;
+    } else if (fig.state === "dying") {
+      row = ROW_SPAWN_DIE;
+      col = Math.min(CONFIG.SPRITE_COLS - 1, Math.floor(fig.fillAmt * CONFIG.SPRITE_COLS));
+    } else {
+      row = ROW_WALK_UP;
+      col = Math.floor(fig.phase * 800 + p.millis() * 0.09) % CONFIG.SPRITE_COLS;
     }
 
-    const sw = Math.max(1.6, s * 0.13);
-
-    const headCy = -1.02 * s;
-    const headRx = 0.165 * s;
-    const headRy = 0.21 * s;
-    const wSh = 0.33 * s;
-    const wWa = 0.29 * s;
-    const yWa = -0.02 * s;
-    const wHi = 0.31 * s;
-    const yHi = 0.06 * s;
-    const yThighTop = 0.2 * s;
-    const xLegOutT = 0.26 * s;
-    const xLegOutA = 0.2 * s;
-    const footY = 1.08 * s;
-    const yCrotchInner = 0.26 * s;
-
-    const gap = 0.04 * s;
-    const armW = 0.095 * s;
-    const armY1 = -0.64 * s;
-    const armY2 = 0.34 * s;
-    const armCx = wSh + gap + armW * 0.5;
-    const armMidY = (armY1 + armY2) * 0.5;
+    const sx = col * fw;
+    const sy = row * fh;
+    const dw = personDrawW(fig.size);
+    const dh = personDrawH(fig.size);
+    const breath =
+      fig.state === "alive"
+        ? 1 + 0.02 * Math.sin(p.millis() * 0.0011 + fig.phase)
+        : 1;
 
     p.push();
     p.translate(fig.x, fig.y);
     p.scale(breath);
+    p.imageMode(p.CENTER);
 
-    p.stroke(0);
-    p.strokeWeight(sw);
-    p.strokeJoin(p.ROUND);
-    p.strokeCap(p.ROUND);
-    p.fill(fillC);
+    if (fig.state === "dying") {
+      const g = p.lerp(255, 0, fig.fillAmt);
+      p.tint(g, g, g, 255);
+    } else if (fig.state === "ascending") {
+      p.tint(245, 245, 245, 255);
+    } else {
+      p.noTint();
+    }
 
-    p.beginShape();
-    p.vertex(0, headCy - headRy);
-    p.bezierVertex(
-      headRx * 1.28,
-      headCy - headRy * 0.9,
-      headRx * 1.18,
-      headCy + headRy * 0.45,
-      wSh,
-      headCy + headRy * 0.82
-    );
-    p.bezierVertex(
-      wSh * 1.03,
-      headCy + headRy * 0.92,
-      wWa * 1.06,
-      yWa - s * 0.1,
-      wWa,
-      yWa
-    );
-    p.bezierVertex(
-      wHi * 1.02,
-      yWa + s * 0.06,
-      xLegOutT,
-      yHi,
-      xLegOutT,
-      yThighTop
-    );
-    p.bezierVertex(
-      xLegOutT * 0.97,
-      footY - s * 0.22,
-      xLegOutA,
-      footY,
-      xLegOutA * 0.42,
-      footY
-    );
-    p.bezierVertex(
-      0.05 * s,
-      footY - s * 0.03,
-      0.048 * s,
-      0.38 * s,
-      0,
-      yCrotchInner
-    );
-    p.bezierVertex(
-      -0.048 * s,
-      0.38 * s,
-      -0.05 * s,
-      footY - s * 0.03,
-      -xLegOutA * 0.42,
-      footY
-    );
-    p.bezierVertex(
-      -xLegOutA,
-      footY,
-      -xLegOutT * 0.97,
-      footY - s * 0.22,
-      -xLegOutT,
-      yThighTop
-    );
-    p.bezierVertex(
-      -xLegOutT,
-      yHi,
-      -wHi * 1.02,
-      yWa + s * 0.06,
-      -wWa,
-      yWa
-    );
-    p.bezierVertex(
-      -wWa * 1.06,
-      yWa - s * 0.1,
-      -wSh * 1.03,
-      headCy + headRy * 0.92,
-      -wSh,
-      headCy + headRy * 0.82
-    );
-    p.bezierVertex(
-      -headRx * 1.18,
-      headCy + headRy * 0.45,
-      -headRx * 1.28,
-      headCy - headRy * 0.9,
-      0,
-      headCy - headRy
-    );
-    p.endShape(p.CLOSE);
-
-    p.rectMode(p.CENTER);
-    p.rect(armCx, armMidY, armW, armY2 - armY1, armW * 0.5);
-    p.rect(-armCx, armMidY, armW, armY2 - armY1, armW * 0.5);
-    p.rectMode(p.CORNER);
-
+    p.image(spriteSheet, 0, 0, dw, dh, sx, sy, fw, fh);
+    p.noTint();
     p.pop();
   }
 
   function remapCrowd(p) {
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
-      const xPad = fig.size * 0.58;
-      const yTop = CONFIG.PAD + fig.size * 1.28;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - fig.size * 1.05;
+      const dw = personDrawW(fig.size);
+      const dh = personDrawH(fig.size);
+      const xPad = dw * 0.52;
+      const yTop = CONFIG.PAD + dh * 0.58;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
       fig.x = p.constrain(fig.x, CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad);
       fig.y = p.constrain(fig.y, yTop, Math.max(yTop + 1, yBot));
     }
   }
 
   const sketch = (p) => {
+    p.preload = () => {
+      spriteSheet = p.loadImage("assets/person-sprites.png");
+    };
+
     p.setup = () => {
       syncCanvasToWindow(p);
       p.createCanvas(canvasW, canvasH);
       p.pixelDensity(1);
+      spriteFrameW = spriteSheet.width / CONFIG.SPRITE_COLS;
+      spriteFrameH = spriteSheet.height / CONFIG.SPRITE_ROWS;
+      spriteAspect = spriteFrameH / spriteFrameW;
+      keyBlackTransparent(spriteSheet);
       initCrowd(p);
 
       window.triggerDeath = triggerDeath;
@@ -260,7 +210,7 @@
 
       beginScene(p);
       for (let i = 0; i < figures.length; i++) {
-        drawPersonIcon(p, figures[i]);
+        drawPersonSprite(p, figures[i]);
       }
       endScene(p);
     };
