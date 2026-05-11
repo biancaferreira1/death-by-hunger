@@ -10,11 +10,7 @@
     SIZE: 400,
     CROWD_SIZE: 300,
     PAD: 18,
-    /** Display width multiplier relative to fig.size (asset scales proportionally). */
-    PERSON_DRAW_W: 2.2,
-    /** Inner fill lerp per frame while dying (white → black). */
     DYING_STEP: 0.06,
-    /** Upward motion after inner fill is black. */
     ASCEND_SPEED: 5,
   };
 
@@ -23,9 +19,6 @@
   let viewScale = 1;
   let viewOffsetX = 0;
   let viewOffsetY = 0;
-
-  let personImg = null;
-  let personAspect = 1;
 
   let figures = [];
 
@@ -47,23 +40,13 @@
     p.pop();
   }
 
-  function personDrawW(size) {
-    return size * CONFIG.PERSON_DRAW_W;
-  }
-
-  function personDrawH(size) {
-    return personDrawW(size) * personAspect;
-  }
-
   function initCrowd(p) {
     figures = [];
     for (let i = 0; i < CONFIG.CROWD_SIZE; i++) {
       const size = p.random(6, 11);
-      const dw = personDrawW(size);
-      const dh = personDrawH(size);
-      const xPad = dw * 0.5;
-      const yTop = CONFIG.PAD + dh * 0.52;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
+      const xPad = size * 0.94;
+      const yTop = CONFIG.PAD + size * 2.5;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - size * 1.55;
       figures.push({
         x: p.random(CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad),
         y: p.random(yTop, Math.max(yTop + 1, yBot)),
@@ -75,9 +58,6 @@
     }
   }
 
-  /**
-   * Call once per acute-starvation event from the API. Never call from a timer.
-   */
   function triggerDeath() {
     const aliveIdx = [];
     for (let i = 0; i < figures.length; i++) {
@@ -101,71 +81,166 @@
         }
       } else if (fig.state === "ascending") {
         fig.y -= CONFIG.ASCEND_SPEED;
-        if (fig.y < -personDrawH(fig.size) * 0.65) {
+        if (fig.y < -fig.size * 5.2) {
           figures.splice(i, 1);
         }
       }
     }
   }
 
-  /** Person sprite (`assets/person.png`), drawn with `image()` as loaded. */
-  function drawPersonAsset(p, fig) {
-    if (!personImg || personImg.width <= 0) return;
-
+  /**
+   * “Bubble person” icon: thick black outline, white fill, rounded head and
+   * limbs, arms hanging straight, legs with a crotch V — drawn in code (Bezier).
+   */
+  function drawPersonIcon(p, fig) {
+    const s = fig.size;
     const breath =
       fig.state === "alive"
         ? 1 + 0.035 * Math.sin(p.millis() * 0.0012 + fig.phase)
         : 1;
 
-    const dw = personDrawW(fig.size);
-    const dh = personDrawH(fig.size);
+    let fillC = 255;
+    if (fig.state === "dying") {
+      fillC = p.lerp(255, 0, fig.fillAmt);
+    } else if (fig.state === "ascending") {
+      fillC = 0;
+    }
+
+    const sw = Math.max(1.85, s * 0.195);
 
     p.push();
     p.translate(fig.x, fig.y);
     p.scale(breath);
-    p.imageMode(p.CENTER);
 
-    if (fig.state === "alive") {
-      p.noTint();
-    } else if (fig.state === "dying") {
-      const g = p.lerp(255, 0, fig.fillAmt);
-      p.tint(g, g, g);
-    } else {
-      p.tint(0, 0, 0);
-    }
+    p.noStroke();
+    p.fill(0);
+    p.ellipse(0, s * 1.38, s * 1.22, s * 0.32);
 
-    p.image(personImg, 0, 0, dw, dh);
-    p.noTint();
+    p.stroke(0);
+    p.strokeWeight(sw);
+    p.strokeJoin(p.ROUND);
+    p.strokeCap(p.ROUND);
+    p.fill(fillC);
+
+    p.beginShape();
+    p.vertex(0, -s * 2.32);
+    p.bezierVertex(
+      s * 0.58,
+      -s * 2.26,
+      s * 0.82,
+      -s * 1.62,
+      s * 0.86,
+      -s * 0.98
+    );
+    p.bezierVertex(
+      s * 0.94,
+      -s * 0.58,
+      s * 0.98,
+      s * 0.08,
+      s * 0.88,
+      s * 0.5
+    );
+    p.bezierVertex(
+      s * 0.78,
+      s * 0.62,
+      s * 0.58,
+      s * 0.66,
+      s * 0.4,
+      s * 0.55
+    );
+    p.bezierVertex(
+      s * 0.42,
+      s * 0.74,
+      s * 0.44,
+      s * 1.02,
+      s * 0.32,
+      s * 1.24
+    );
+    p.bezierVertex(
+      s * 0.2,
+      s * 1.34,
+      s * 0.08,
+      s * 1.14,
+      s * 0.06,
+      s * 0.84
+    );
+    p.bezierVertex(
+      s * 0.04,
+      s * 0.56,
+      s * 0.02,
+      s * 0.44,
+      0,
+      s * 0.38
+    );
+    p.bezierVertex(
+      -s * 0.02,
+      s * 0.44,
+      -s * 0.04,
+      s * 0.56,
+      -s * 0.06,
+      s * 0.84
+    );
+    p.bezierVertex(
+      -s * 0.08,
+      s * 1.14,
+      -s * 0.2,
+      s * 1.34,
+      -s * 0.32,
+      s * 1.24
+    );
+    p.bezierVertex(
+      -s * 0.44,
+      s * 1.02,
+      -s * 0.42,
+      s * 0.74,
+      -s * 0.4,
+      s * 0.55
+    );
+    p.bezierVertex(
+      -s * 0.58,
+      s * 0.66,
+      -s * 0.78,
+      s * 0.62,
+      -s * 0.88,
+      s * 0.5
+    );
+    p.bezierVertex(
+      -s * 0.98,
+      s * 0.08,
+      -s * 0.94,
+      -s * 0.58,
+      -s * 0.86,
+      -s * 0.98
+    );
+    p.bezierVertex(
+      -s * 0.82,
+      -s * 1.62,
+      -s * 0.58,
+      -s * 2.26,
+      0,
+      -s * 2.32
+    );
+    p.endShape(p.CLOSE);
+
     p.pop();
   }
 
   function remapCrowd(p) {
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
-      const dw = personDrawW(fig.size);
-      const dh = personDrawH(fig.size);
-      const xPad = dw * 0.5;
-      const yTop = CONFIG.PAD + dh * 0.52;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
+      const xPad = fig.size * 0.94;
+      const yTop = CONFIG.PAD + fig.size * 2.5;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - fig.size * 1.55;
       fig.x = p.constrain(fig.x, CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad);
-      fig.y = p.constrain(
-        fig.y,
-        yTop,
-        Math.max(yTop + 1, yBot)
-      );
+      fig.y = p.constrain(fig.y, yTop, Math.max(yTop + 1, yBot));
     }
   }
 
   const sketch = (p) => {
-    p.preload = () => {
-      personImg = p.loadImage("assets/person.png");
-    };
-
     p.setup = () => {
       syncCanvasToWindow(p);
       p.createCanvas(canvasW, canvasH);
       p.pixelDensity(1);
-      personAspect = personImg.height / personImg.width;
       initCrowd(p);
 
       window.triggerDeath = triggerDeath;
@@ -178,7 +253,7 @@
 
       beginScene(p);
       for (let i = 0; i < figures.length; i++) {
-        drawPersonAsset(p, figures[i]);
+        drawPersonIcon(p, figures[i]);
       }
       endScene(p);
     };

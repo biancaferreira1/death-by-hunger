@@ -1,12 +1,11 @@
 # Death by Hunger
 
-A `p5.js` “sea of people”: hundreds of person sprites (`assets/person.png`) on a white field, with a subtle idle motion. Each loss is represented interactively (not on a timer) via `triggerDeath()`.
+A `p5.js` “sea of people”: hundreds of in-code “bubble person” icons (Bezier silhouette: thick black outline, white fill, subtle idle motion) on a white field. Each loss is represented interactively (not on a timer) via `triggerDeath()`.
 
 ## Project Structure
 
 - `index.html` - app entry point
-- `src/sketch.js` - crowd animation and `triggerDeath()` logic
-- `assets/person.png` - person graphic (bitmap; replace to customize)
+- `src/sketch.js` - crowd animation, vector figure drawing, and `triggerDeath()` logic
 - `style.css` - page styling
 - `libs/p5.min.js` - local `p5.js` runtime
 
@@ -33,7 +32,7 @@ python3 -m http.server 8000
 
 ## Configuration
 
-Tunable values live near the top of `src/sketch.js` in the `CONFIG` object (crowd size, padding, sprite width factor `PERSON_DRAW_W`, fade speed, ascent speed). Swap **`assets/person.png`** to change the artwork; aspect ratio is read automatically from the file.
+Tunable values live near the top of `src/sketch.js` in the `CONFIG` object (crowd size, padding, fade speed, ascent speed). The figure shape is defined by the Bezier outline in **`drawPersonIcon`**.
 
 ## Backend hook
 
