@@ -10,12 +10,13 @@
     SIZE: 400,
     CROWD_SIZE: 300,
     PAD: 18,
-    /** Scene units wide per figure (height follows spritesheet frame aspect). */
     SPRITE_DRAW_W: 2.35,
     DYING_STEP: 0.06,
     ASCEND_SPEED: 5,
     SPRITE_COLS: 8,
     SPRITE_ROWS: 5,
+    /** Ms per walk frame (shared by crowd so motion stays readable). */
+    WALK_FRAME_MS: 220,
   };
 
   const ROW_WALK_RIGHT = 0;
@@ -37,7 +38,7 @@
 
   let figures = [];
 
-  function keyBlackTransparent(img, threshold = 32) {
+  function keyBlackTransparent(img, threshold = 18) {
     img.loadPixels();
     const px = img.pixels;
     for (let i = 0; i < px.length; i += 4) {
@@ -88,6 +89,7 @@
         y: p.random(yTop, Math.max(yTop + 1, yBot)),
         size,
         phase: p.random(p.TWO_PI),
+        animOffset: Math.floor(p.random(CONFIG.SPRITE_COLS)),
         state: "alive",
         fillAmt: 0,
       });
@@ -133,29 +135,26 @@
     let row = ROW_WALK_DOWN;
     let col = 0;
 
+    const walkTick = Math.floor(p.millis() / CONFIG.WALK_FRAME_MS);
+
     if (fig.state === "alive") {
       row = ROW_WALK_DOWN;
-      col = Math.floor(fig.phase * 1000 + p.millis() * 0.065) % CONFIG.SPRITE_COLS;
+      col = (walkTick + (fig.animOffset ?? 0)) % CONFIG.SPRITE_COLS;
     } else if (fig.state === "dying") {
       row = ROW_SPAWN_DIE;
       col = Math.min(CONFIG.SPRITE_COLS - 1, Math.floor(fig.fillAmt * CONFIG.SPRITE_COLS));
     } else {
       row = ROW_WALK_UP;
-      col = Math.floor(fig.phase * 800 + p.millis() * 0.09) % CONFIG.SPRITE_COLS;
+      col = (walkTick + (fig.animOffset ?? 0)) % CONFIG.SPRITE_COLS;
     }
 
-    const sx = col * fw;
-    const sy = row * fh;
-    const dw = personDrawW(fig.size);
-    const dh = personDrawH(fig.size);
-    const breath =
-      fig.state === "alive"
-        ? 1 + 0.02 * Math.sin(p.millis() * 0.0011 + fig.phase)
-        : 1;
+    const sx = Math.floor(col * fw);
+    const sy = Math.floor(row * fh);
+    const dw = Math.round(personDrawW(fig.size));
+    const dh = Math.round(personDrawH(fig.size));
 
     p.push();
     p.translate(fig.x, fig.y);
-    p.scale(breath);
     p.imageMode(p.CENTER);
 
     if (fig.state === "dying") {
@@ -194,8 +193,8 @@
       syncCanvasToWindow(p);
       p.createCanvas(canvasW, canvasH);
       p.pixelDensity(1);
-      spriteFrameW = spriteSheet.width / CONFIG.SPRITE_COLS;
-      spriteFrameH = spriteSheet.height / CONFIG.SPRITE_ROWS;
+      spriteFrameW = Math.floor(spriteSheet.width / CONFIG.SPRITE_COLS);
+      spriteFrameH = Math.floor(spriteSheet.height / CONFIG.SPRITE_ROWS);
       spriteAspect = spriteFrameH / spriteFrameW;
       keyBlackTransparent(spriteSheet);
       initCrowd(p);
