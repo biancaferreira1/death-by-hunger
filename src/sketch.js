@@ -45,10 +45,14 @@
   function initCrowd(p) {
     figures = [];
     for (let i = 0; i < CONFIG.CROWD_SIZE; i++) {
+      const size = p.random(6, 11);
+      const xPad = size * 0.95;
+      const yTop = CONFIG.PAD + size * 2.35;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - size * 1.65;
       figures.push({
-        x: p.random(CONFIG.PAD, CONFIG.SIZE - CONFIG.PAD),
-        y: p.random(CONFIG.PAD, CONFIG.SIZE - CONFIG.PAD),
-        size: p.random(7, 13),
+        x: p.random(CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad),
+        y: p.random(yTop, Math.max(yTop + 1, yBot)),
+        size,
         phase: p.random(p.TWO_PI),
         state: "alive",
         fillAmt: 0,
@@ -82,14 +86,18 @@
         }
       } else if (fig.state === "ascending") {
         fig.y -= CONFIG.ASCEND_SPEED;
-        if (fig.y < -fig.size * 4) {
+        if (fig.y < -fig.size * 5) {
           figures.splice(i, 1);
         }
       }
     }
   }
 
-  function drawStickFigure(p, fig) {
+  /**
+   * Thick-outline icon person: one filled silhouette (not stick limbs), black
+   * stroke, white interior when alive; solid black shadow oval under the feet.
+   */
+  function drawPersonIcon(p, fig) {
     const s = fig.size;
     const breath =
       fig.state === "alive"
@@ -103,20 +111,97 @@
       fillC = 0;
     }
 
+    const sw = Math.max(1.8, s * 0.2);
+
     p.push();
     p.translate(fig.x, fig.y);
     p.scale(breath);
 
+    p.noStroke();
+    p.fill(0);
+    p.ellipse(0, s * 1.38, s * 1.32, s * 0.36);
+
     p.stroke(0);
-    p.strokeWeight(Math.max(1.2, s * 0.11));
+    p.strokeWeight(sw);
+    p.strokeJoin(p.ROUND);
+    p.strokeCap(p.ROUND);
     p.fill(fillC);
 
-    p.circle(0, -s * 1.15, s * 0.88);
-    p.line(0, -s * 0.82, 0, s * 0.42);
-    p.line(0, -s * 0.18, -s * 0.55, s * 0.08);
-    p.line(0, -s * 0.18, s * 0.55, s * 0.08);
-    p.line(0, s * 0.42, -s * 0.48, s * 1.18);
-    p.line(0, s * 0.42, s * 0.48, s * 1.18);
+    p.beginShape();
+    p.vertex(0, -s * 2.15);
+    p.bezierVertex(
+      s * 0.52,
+      -s * 2.1,
+      s * 0.7,
+      -s * 1.62,
+      s * 0.76,
+      -s * 1.05
+    );
+    p.bezierVertex(
+      s * 0.92,
+      -s * 0.72,
+      s * 0.96,
+      -s * 0.12,
+      s * 0.86,
+      s * 0.38
+    );
+    p.bezierVertex(
+      s * 0.82,
+      s * 0.55,
+      s * 0.52,
+      s * 0.58,
+      s * 0.36,
+      s * 0.5
+    );
+    p.bezierVertex(
+      s * 0.4,
+      s * 0.78,
+      s * 0.44,
+      s * 1.05,
+      s * 0.32,
+      s * 1.22
+    );
+    p.bezierVertex(
+      s * 0.16,
+      s * 1.28,
+      -s * 0.16,
+      s * 1.28,
+      -s * 0.32,
+      s * 1.22
+    );
+    p.bezierVertex(
+      -s * 0.44,
+      s * 1.05,
+      -s * 0.4,
+      s * 0.78,
+      -s * 0.36,
+      s * 0.5
+    );
+    p.bezierVertex(
+      -s * 0.52,
+      s * 0.58,
+      -s * 0.82,
+      s * 0.55,
+      -s * 0.86,
+      s * 0.38
+    );
+    p.bezierVertex(
+      -s * 0.96,
+      -s * 0.12,
+      -s * 0.92,
+      -s * 0.72,
+      -s * 0.76,
+      -s * 1.05
+    );
+    p.bezierVertex(
+      -s * 0.7,
+      -s * 1.62,
+      -s * 0.52,
+      -s * 2.1,
+      0,
+      -s * 2.15
+    );
+    p.endShape(p.CLOSE);
 
     p.pop();
   }
@@ -124,8 +209,15 @@
   function remapCrowd(p) {
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
-      fig.x = p.constrain(fig.x, CONFIG.PAD, CONFIG.SIZE - CONFIG.PAD);
-      fig.y = p.constrain(fig.y, CONFIG.PAD, CONFIG.SIZE - CONFIG.PAD);
+      const xPad = fig.size * 0.95;
+      const yTop = CONFIG.PAD + fig.size * 2.35;
+      const yBot = CONFIG.SIZE - CONFIG.PAD - fig.size * 1.65;
+      fig.x = p.constrain(fig.x, CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad);
+      fig.y = p.constrain(
+        fig.y,
+        yTop,
+        Math.max(yTop + 1, yBot)
+      );
     }
   }
 
@@ -146,7 +238,7 @@
 
       beginScene(p);
       for (let i = 0; i < figures.length; i++) {
-        drawStickFigure(p, figures[i]);
+        drawPersonIcon(p, figures[i]);
       }
       endScene(p);
     };

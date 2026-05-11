@@ -1,6 +1,6 @@
 # Death by Hunger
 
-A `p5.js` “sea of people”: hundreds of outlined stick figures on a white field, with a subtle idle motion. Each loss is represented interactively (not on a timer) via `triggerDeath()`.
+A `p5.js` “sea of people”: hundreds of thick-outlined icon figures on a white field, with a subtle idle motion. Each loss is represented interactively (not on a timer) via `triggerDeath()`.
 
 ## Project Structure
 
