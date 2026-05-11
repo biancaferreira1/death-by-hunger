@@ -108,7 +108,7 @@
     }
   }
 
-  /** Raster person asset (`assets/person.png`), drawn as loaded — no vector redraw. */
+  /** Person sprite (`assets/person.svg`): transparent background, drawn with `image()`. */
   function drawPersonAsset(p, fig) {
     if (!personImg || personImg.width <= 0) return;
 
@@ -158,7 +158,7 @@
 
   const sketch = (p) => {
     p.preload = () => {
-      personImg = p.loadImage("assets/person.png");
+      personImg = p.loadImage("assets/person.svg");
     };
 
     p.setup = () => {
