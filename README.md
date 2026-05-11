@@ -1,12 +1,12 @@
 # Death by Hunger
 
-A `p5.js` “sea of people”: hundreds of person sprites (`assets/person.svg`, transparent background) on a white field, with a subtle idle motion. Each loss is represented interactively (not on a timer) via `triggerDeath()`.
+A `p5.js` “sea of people”: hundreds of person sprites (`assets/person.png`) on a white field, with a subtle idle motion. Each loss is represented interactively (not on a timer) via `triggerDeath()`.
 
 ## Project Structure
 
 - `index.html` - app entry point
 - `src/sketch.js` - crowd animation and `triggerDeath()` logic
-- `assets/person.svg` - person graphic (transparent background; replace to customize)
+- `assets/person.png` - person graphic (bitmap; replace to customize)
 - `style.css` - page styling
 - `libs/p5.min.js` - local `p5.js` runtime
 
@@ -33,7 +33,7 @@ python3 -m http.server 8000
 
 ## Configuration
 
-Tunable values live near the top of `src/sketch.js` in the `CONFIG` object (crowd size, padding, sprite width factor `PERSON_DRAW_W`, fade speed, ascent speed). Swap **`assets/person.svg`** for your own art (SVG or use a **PNG with alpha**—then point `loadImage` at that file); aspect ratio is read from the loaded image.
+Tunable values live near the top of `src/sketch.js` in the `CONFIG` object (crowd size, padding, sprite width factor `PERSON_DRAW_W`, fade speed, ascent speed). Swap **`assets/person.png`** to change the artwork; aspect ratio is read automatically from the file.
 
 ## Backend hook
 

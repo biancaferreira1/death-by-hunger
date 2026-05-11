@@ -108,7 +108,7 @@
     }
   }
 
-  /** Person sprite (`assets/person.svg`): transparent background, drawn with `image()`. */
+  /** Person sprite (`assets/person.png`), drawn with `image()` as loaded. */
   function drawPersonAsset(p, fig) {
     if (!personImg || personImg.width <= 0) return;
 
@@ -158,7 +158,7 @@
 
   const sketch = (p) => {
     p.preload = () => {
-      personImg = p.loadImage("assets/person.svg");
+      personImg = p.loadImage("assets/person.png");
     };
 
     p.setup = () => {
