@@ -146,9 +146,11 @@ git checkout main
 git pull
 ```
 
-### If Git reports conflicts
+### When `git pull` stops with merge conflicts
 
-- Git will list conflicted files. Open them, resolve the `<<<<<<<` / `=======` / `>>>>>>>` markers, save, then:
+This means two copies of the same file disagree; it is **not** a problem with this README unless you actually see conflict markers inside a file.
+
+- Git will list the conflicted paths. Open those files, resolve the `<<<<<<<` / `=======` / `>>>>>>>` markers, save, then:
 
 ```bash
 git add <resolved-files>
