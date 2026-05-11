@@ -1,12 +1,11 @@
 # Death by Hunger
 
-An interactive pixel-art wheat visualization built with `p5.js`.  
-As the death count increases, wheat pixels fall from the stalk to represent loss over time.
+A `p5.js` “sea of people”: hundreds of outlined stick figures on a white field, with a subtle idle motion. Each loss is represented interactively (not on a timer) via `triggerDeath()`.
 
 ## Project Structure
 
 - `index.html` - app entry point
-- `src/sketch.js` - main animation and logic
+- `src/sketch.js` - crowd animation and `triggerDeath()` logic
 - `style.css` - page styling
 - `libs/p5.min.js` - local `p5.js` runtime
 
@@ -29,24 +28,19 @@ python3 -m http.server 8000
 
 ## Controls
 
-- Press `F` to manually add 1 death and trigger more falling pixels.
+- Press **`D`** to trigger one death (for testing): a random living figure fades to black, then rises off the canvas and is removed.
 
 ## Configuration
 
-Most behavior is controlled in `src/sketch.js` under the `CONFIG` object, including:
+Tunable values live near the top of `src/sketch.js` in the `CONFIG` object (crowd size, padding, fade speed, ascent speed).
 
-- `USE_SIMULATED_DATA` (use local simulated deaths)
-- `SIM_DEATHS_PER_SEC` (simulation speed)
-- `RELEASE_PER_FRAME` (how quickly pixels detach)
-- `SHOW_DEBUG` (toggle HUD/debug overlay)
-
-## Backend Hook
+## Backend hook
 
 When integrating with real data, call:
 
-`window.setDeathsCount(number)`
+`window.triggerDeath()`
 
-from your API layer to update the visualization.
+once per API-reported acute starvation event (from your fetch/stream handler). Do **not** call it from `setInterval` or other timers.
 
 ## Prompt-driven collaboration
 
