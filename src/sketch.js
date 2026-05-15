@@ -3,8 +3,8 @@
   // API INTEGRATION (backend)
   // When real-time acute starvation data is available, fetch or receive events in
   // your API layer and call triggerDeath() once per reported instance.
-  // For local demo only, USE_SIMULATED_DEATHS reproduces the pre–people wheat sketch
-  // rate (see simulateDeaths). Turn it off and do not use setInterval when wired to data.
+  // For local demo only, USE_SIMULATED_DEATHS uses SIM_DEATHS_PER_SEC (see CONFIG). Turn it off
+  // and do not use setInterval when wired to data.
   // =============================================================================
 
   const CONFIG = {
@@ -26,7 +26,11 @@
     WALK_FRAME_MS: 220,
     /** Same as wheat-era sketch (continuous dt accumulation in draw, not setInterval). */
     USE_SIMULATED_DEATHS: true,
-    SIM_DEATHS_PER_SEC: 2.4,
+    /**
+     * Demo-only: ~1 death / 3.47 s on average. Back-of-envelope: 9.1M/year → ~24,931/day →
+     * ~1,038/h → ~17.3/min → 60÷17.3 ≈ 3.47 s between deaths (pedagogical order of magnitude).
+     */
+    SIM_DEATHS_PER_SEC: 17.3 / 60,
     /** Alive silhouettes — darker than semi-transparent white ghosts. */
     LIVE_TINT: [68, 68, 68],
     DEAD_TINT: [255, 255, 255],

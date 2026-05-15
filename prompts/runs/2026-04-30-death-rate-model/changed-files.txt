@@ -1,0 +1,9 @@
+README.md
+src/sketch.js
+prompts/README.md
+prompts/queue/2026-04-30-death-rate-model.md
+prompts/queue/prompt.md
+prompts/runs/2026-04-30-death-rate-model/prompt.md
+prompts/runs/2026-04-30-death-rate-model/result-summary.md
+prompts/runs/2026-04-30-death-rate-model/verification.md
+prompts/runs/2026-04-30-death-rate-model/changed-files.txt

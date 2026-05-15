@@ -1,12 +1,12 @@
 # Death by Hunger
 
-A `p5.js` “sea of people”: each person is a frame from **`assets/person-sprites.png`** (8×5 sheet: walk right/left/up/down, spawn/die). Alive figures loop the **walk down** row; **spawn/die** while fading; **walk up** while rising off screen. `triggerDeath()` drives losses (no timer).
+A `p5.js` “sea of people”: each person is a frame from **`assets/person-sprites-4.png`** (one row: two walk frames alive, two with halo while dead). `triggerDeath()` drives losses (no `setInterval`). The crowd is a **fixed pool** of **300** recycled figures (same count as the historical wheat “pixel” scale order-of-magnitude).
 
 ## Project Structure
 
 - `index.html` - app entry point
 - `src/sketch.js` - crowd animation, sprite slicing, and `triggerDeath()` logic
-- `assets/person-sprites.png` - character spritesheet (used as provided; near-black keyed to transparent at runtime for the white canvas)
+- `assets/person-sprites-4.png` - character spritesheet (near-black keyed to transparent at runtime)
 - `style.css` - page styling
 - `libs/p5.min.js` - local `p5.js` runtime
 
@@ -30,11 +30,15 @@ python3 -m http.server 8000
 ## Controls
 
 - Press **`F`** to toggle **fullscreen** (browser fullscreen for the sketch canvas).
-- Press **`D`** to trigger one death (for testing): a random living figure fades to black, then rises off the canvas and is removed.
+- Press **`D`** to trigger one death (for testing): a random eligible living figure dies, rises off the top, then **recycles** back into the pool.
+
+## Death rate (demo)
+
+The optional simulator (`USE_SIMULATED_DEATHS` in `sketch.js`) uses about **one death every 3.47 seconds** on average, from a classroom-sized chain: **~9.1 million deaths per year** → ~24,931/day → ~17.3/min → \(60 \div 17.3 \approx 3.47\) s. Turn off simulation when wiring real API events.
 
 ## Configuration
 
-Tunable values live near the top of `src/sketch.js` in the `CONFIG` object (crowd size, padding, `SPRITE_DRAW_W`, fade speed, ascent speed). Replace **`assets/person-sprites.png`** to change art (keep **8 columns × 5 rows** layout or update `SPRITE_COLS` / `SPRITE_ROWS`).
+Tunable values live near the top of `src/sketch.js` in the `CONFIG` object (crowd size, padding, `SPRITE_DRAW_W`, fade speed, ascent speed, `SIM_DEATHS_PER_SEC`). Replace **`assets/person-sprites-4.png`** to change art (update `SPRITE_COLS` / `SPRITE_ROWS` if the grid changes).
 
 ## Backend hook
 

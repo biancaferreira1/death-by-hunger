@@ -7,12 +7,12 @@ Drive the visualization from the same back-of-the-envelope rate modeled here: 9,
 ## Scope (Allowed Files)
 
 - `src/sketch.js`
-- `README.md` (only if user-facing behavior or config knobs change)
+- `README.md` (only if user-facing behavior or config knobs changes)
 
 ## Out of Scope
 
 - Replacing the spritesheet or redesigning visuals
-- `prompts/` layout (except this file is already in `queue/` by design)
+- `prompts/` layout (except this file is already in `prompts/queue/` by design)
 - Infrastructure or deployment changes
 
 ## Acceptance Criteria
