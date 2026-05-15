@@ -1,6 +1,5 @@
 src/sketch.js
-prompts/runs/change-to-people/prompt.md
-prompts/runs/change-to-people/result-summary.md
+prompts/queue/prompt.md
 prompts/runs/2026-05-12-recycle-crowd-pool/prompt.md
 prompts/runs/2026-05-12-recycle-crowd-pool/result-summary.md
 prompts/runs/2026-05-12-recycle-crowd-pool/verification.md
