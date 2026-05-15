@@ -15,6 +15,8 @@
     SPRITE_DRAW_W: 2.35,
     /** Ms off-screen before same slot respawns at bottom (frame-based, not setTimeout). */
     EXIT_DORMANT_MS: 3000,
+    /** Alive sprite pulse (fade out / in) before upward exit; then dead+halo + ascent. */
+    PRE_DEATH_MS: 1400,
     /** Max upward speed while exiting; ramps from ASCEND_ACCEL. */
     ASCEND_SPEED: 2,
     /** Added per frame until ASCEND_SPEED; keeps motion from jumping to full speed. */
@@ -184,6 +186,12 @@
     return personDrawW(size) * spriteAspect;
   }
 
+  function preDeathPulseVis(fig) {
+    if (fig.state !== "preDeath") return 1;
+    const u = Math.min(1, Math.max(0, (clockMs - fig.preDeathStartMs) / CONFIG.PRE_DEATH_MS));
+    return Math.pow(Math.cos(Math.PI * u), 2);
+  }
+
   function fadeInAt(fig) {
     return Math.min(1, Math.max(0, (clockMs - fig.bornAt) / CONFIG.SPAWN_FADE_MS));
   }
@@ -209,6 +217,7 @@
     const yLo = Math.max(mid, yTop + 1);
     fig.x = p.random(CONFIG.PAD + xPad, canvasW - CONFIG.PAD - xPad);
     fig.y = p.random(yLo, Math.max(yLo + 1, yBot));
+    fig.preDeathStartMs = null;
   }
 
   function makeFigure(p, bornOffsetMs) {
@@ -228,6 +237,7 @@
       state: "alive",
       ascendVel: 0,
       dormantWakeAt: null,
+      preDeathStartMs: null,
     };
   }
 
@@ -247,7 +257,8 @@
     if (aliveIdx.length === 0) return false;
     const pick = aliveIdx[Math.floor(Math.random() * aliveIdx.length)];
     const fig = figures[pick];
-    fig.state = "exiting";
+    fig.state = "preDeath";
+    fig.preDeathStartMs = clockMs;
     fig.ascendVel = 0;
     return true;
   }
@@ -271,7 +282,13 @@
     const vAccel = CONFIG.ASCEND_ACCEL * ms;
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
-      if (fig.state === "exiting") {
+      if (fig.state === "preDeath") {
+        if (clockMs - fig.preDeathStartMs >= CONFIG.PRE_DEATH_MS) {
+          fig.state = "exiting";
+          fig.preDeathStartMs = null;
+          fig.ascendVel = 0;
+        }
+      } else if (fig.state === "exiting") {
         fig.ascendVel = Math.min(vCap, (fig.ascendVel ?? 0) + vAccel);
         fig.y -= fig.ascendVel;
         if (fig.y < 0) {
@@ -301,7 +318,8 @@
     if (fig.state === "dormant") return;
 
     const fi = fadeInAt(fig);
-    if (fig.state === "alive" && fi <= 0) return;
+    const isAliveDraw = fig.state === "alive" || fig.state === "preDeath";
+    if (isAliveDraw && fi <= 0) return;
 
     const dw = Math.round(personDrawW(fig.size));
     const dh = Math.round(personDrawH(fig.size));
@@ -310,21 +328,28 @@
     p.translate(fig.x, fig.y);
     p.imageMode(p.CENTER);
 
-    const col =
-      fig.state === "alive" ? phase : stride + phase;
+    const col = fig.state === "exiting" ? stride + phase : phase;
     const meta = frameMeta[row][col];
     const { sw, sh, sfx, sfy } = meta;
     const cx = dw * (0.5 - sfx / sw);
     const cy = dh * (0.5 - sfy / sh);
     const tex = tintedFrames[col];
 
-    if (fig.state === "alive" && fi < 1) {
-      p.tint(255, 255, 255, Math.round(255 * fi));
+    const pulse = preDeathPulseVis(fig);
+    const baseAlpha =
+      fig.state === "preDeath"
+        ? Math.round(255 * fi * pulse)
+        : fi < 1
+          ? Math.round(255 * fi)
+          : 255;
+
+    if (baseAlpha < 255) {
+      p.tint(255, 255, 255, baseAlpha);
     }
 
     p.image(tex, cx, cy, dw, dh, 0, 0, sw, sh);
 
-    if (fig.state === "alive" && fi < 1) {
+    if (baseAlpha < 255) {
       p.noTint();
     }
 
@@ -347,6 +372,13 @@
       if (fig.state === "alive") {
         fig.x = p.random(CONFIG.PAD + xPad, canvasW - CONFIG.PAD - xPad);
         fig.y = p.random(yTop, Math.max(yTop + 1, yBot));
+      } else if (fig.state === "preDeath") {
+        if (hasPrev) {
+          fig.x *= sx;
+          fig.y *= sy;
+        }
+        fig.x = p.constrain(fig.x, CONFIG.PAD + xPad, canvasW - CONFIG.PAD - xPad);
+        fig.y = p.constrain(fig.y, yTop, Math.max(yTop + 1, yBot));
       } else if (fig.state === "exiting" || fig.state === "dormant") {
         if (hasPrev) {
           fig.x *= sx;
@@ -387,7 +419,8 @@
 
       beginScene(p);
       for (let i = 0; i < figures.length; i++) {
-        if (figures[i].state === "alive") drawPersonSprite(p, figures[i]);
+        const s = figures[i].state;
+        if (s === "alive" || s === "preDeath") drawPersonSprite(p, figures[i]);
       }
       for (let i = 0; i < figures.length; i++) {
         if (figures[i].state === "exiting") drawPersonSprite(p, figures[i]);

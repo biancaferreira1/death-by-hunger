@@ -30,7 +30,7 @@ python3 -m http.server 8000
 ## Controls
 
 - Press **`F`** to toggle **fullscreen** (browser fullscreen for the sketch canvas).
-- Press **`D`** to trigger one death (for testing): a random eligible figure **exits immediately** upward (dead+halo sprite), goes **dormant** once \(y < 0\), then after **`EXIT_DORMANT_MS`** (default 3 s, frame-time—not `setTimeout`) **respawns** at the bottom—the same pool slot, no new objects.
+- Press **`D`** to trigger one death (for testing): a random eligible figure first **pulses** (alive sprite fades out and in via **`PRE_DEATH_MS`**), then **exits** upward (dead+halo sprite), goes **dormant** once \(y < 0\), then after **`EXIT_DORMANT_MS`** (default 3 s, frame-time—not `setTimeout`) **respawns** at the bottom—the same pool slot, no new objects.
 
 ## Death rate (demo)
 
@@ -38,7 +38,7 @@ The optional simulator (`USE_SIMULATED_DEATHS` in `sketch.js`) uses about **one 
 
 ## Configuration
 
-Tunable values live near the top of `src/sketch.js` in the `CONFIG` object (crowd size, padding, `SPRITE_DRAW_W`, `EXIT_DORMANT_MS`, fade/spawn rules, ascent speed, `SIM_DEATHS_PER_SEC`). Replace **`assets/person-sprites-4.png`** to change art (update `SPRITE_COLS` / `SPRITE_ROWS` if the grid changes).
+Tunable values live near the top of `src/sketch.js` in the `CONFIG` object (crowd size, padding, `SPRITE_DRAW_W`, `PRE_DEATH_MS`, `EXIT_DORMANT_MS`, fade/spawn rules, ascent speed, `SIM_DEATHS_PER_SEC`). Replace **`assets/person-sprites-4.png`** to change art (update `SPRITE_COLS` / `SPRITE_ROWS` if the grid changes).
 
 ## Backend hook
 

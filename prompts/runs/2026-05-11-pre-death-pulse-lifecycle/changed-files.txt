@@ -1,0 +1,7 @@
+src/sketch.js
+README.md
+prompts/runs/2026-05-11-pre-death-pulse-lifecycle/prompt.md
+prompts/runs/2026-05-11-pre-death-pulse-lifecycle/result-summary.md
+prompts/runs/2026-05-11-pre-death-pulse-lifecycle/verification.md
+prompts/runs/2026-05-11-pre-death-pulse-lifecycle/changed-files.txt
+prompts/queue/prompt.md
