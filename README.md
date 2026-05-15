@@ -29,6 +29,7 @@ python3 -m http.server 8000
 
 ## Controls
 
+- Press **`F`** to toggle **fullscreen** (browser fullscreen for the sketch canvas).
 - Press **`D`** to trigger one death (for testing): a random living figure fades to black, then rises off the canvas and is removed.
 
 ## Configuration

@@ -8,6 +8,7 @@
   // =============================================================================
 
   const CONFIG = {
+    /** Reference edge length for scaling (layout uses full window; sizes track min side / this). */
     SIZE: 400,
     CROWD_SIZE: 300,
     PAD: 18,
@@ -43,9 +44,6 @@
 
   let canvasW = CONFIG.SIZE;
   let canvasH = CONFIG.SIZE;
-  let viewScale = 1;
-  let viewOffsetX = 0;
-  let viewOffsetY = 0;
 
   let spriteSheet = null;
   /** Per-cell tight crop + feet anchor (sheet px), after nominal grid split. */
@@ -158,18 +156,17 @@
     img.updatePixels();
   }
 
+  function layoutScale() {
+    return Math.min(canvasW, canvasH) / CONFIG.SIZE;
+  }
+
   function syncCanvasToWindow(p) {
     canvasW = Math.max(1, Math.floor(p.windowWidth));
     canvasH = Math.max(1, Math.floor(p.windowHeight));
-    viewScale = Math.min(canvasW, canvasH) / CONFIG.SIZE;
-    viewOffsetX = (canvasW - CONFIG.SIZE * viewScale) * 0.5;
-    viewOffsetY = (canvasH - CONFIG.SIZE * viewScale) * 0.5;
   }
 
   function beginScene(p) {
     p.push();
-    p.translate(viewOffsetX, viewOffsetY);
-    p.scale(viewScale);
   }
 
   function endScene(p) {
@@ -177,7 +174,7 @@
   }
 
   function personDrawW(size) {
-    return size * CONFIG.SPRITE_DRAW_W;
+    return size * CONFIG.SPRITE_DRAW_W * layoutScale();
   }
 
   function personDrawH(size) {
@@ -204,10 +201,10 @@
     const dh = personDrawH(fig.size);
     const xPad = dw * 0.52;
     const yTop = CONFIG.PAD + dh * 0.58;
-    const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
+    const yBot = canvasH - CONFIG.PAD - dh * 0.52;
     const mid = yTop + (yBot - yTop) * 0.5;
     const yLo = Math.max(mid, yTop + 1);
-    fig.x = p.random(CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad);
+    fig.x = p.random(CONFIG.PAD + xPad, canvasW - CONFIG.PAD - xPad);
     fig.y = p.random(yLo, Math.max(yLo + 1, yBot));
   }
 
@@ -217,9 +214,9 @@
     const dh = personDrawH(size);
     const xPad = dw * 0.52;
     const yTop = CONFIG.PAD + dh * 0.58;
-    const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
+    const yBot = canvasH - CONFIG.PAD - dh * 0.52;
     return {
-      x: p.random(CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad),
+      x: p.random(CONFIG.PAD + xPad, canvasW - CONFIG.PAD - xPad),
       y: p.random(yTop, Math.max(yTop + 1, yBot)),
       size,
       phase: p.random(p.TWO_PI),
@@ -266,18 +263,21 @@
   }
 
   function updateFigures(p) {
+    const ms = layoutScale();
+    const vCap = CONFIG.ASCEND_SPEED * ms;
+    const vAccel = CONFIG.ASCEND_ACCEL * ms;
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
       if (fig.state === "dying") {
         fig.fillAmt += CONFIG.DYING_STEP;
-        fig.ascendVel = Math.min(CONFIG.ASCEND_SPEED, (fig.ascendVel ?? 0) + CONFIG.ASCEND_ACCEL);
+        fig.ascendVel = Math.min(vCap, (fig.ascendVel ?? 0) + vAccel);
         fig.y -= fig.ascendVel;
         if (fig.fillAmt >= 1) {
           fig.fillAmt = 1;
           fig.state = "ascending";
         }
       } else if (fig.state === "ascending") {
-        fig.ascendVel = Math.min(CONFIG.ASCEND_SPEED, (fig.ascendVel ?? 0) + CONFIG.ASCEND_ACCEL);
+        fig.ascendVel = Math.min(vCap, (fig.ascendVel ?? 0) + vAccel);
         fig.y -= fig.ascendVel;
         if (fig.y < -personDrawH(fig.size) * 0.55) {
           fig.state = "alive";
@@ -347,16 +347,29 @@
     p.pop();
   }
 
-  function remapCrowd(p) {
+  function remapCrowd(p, prevW, prevH) {
+    const hasPrev = prevW > 0 && prevH > 0;
+    const sx = hasPrev ? canvasW / prevW : 1;
+    const sy = hasPrev ? canvasH / prevH : 1;
+
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
       const dw = personDrawW(fig.size);
       const dh = personDrawH(fig.size);
       const xPad = dw * 0.52;
       const yTop = CONFIG.PAD + dh * 0.58;
-      const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
-      fig.x = p.constrain(fig.x, CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad);
-      fig.y = p.constrain(fig.y, yTop, Math.max(yTop + 1, yBot));
+      const yBot = canvasH - CONFIG.PAD - dh * 0.52;
+
+      if (fig.state === "alive") {
+        fig.x = p.random(CONFIG.PAD + xPad, canvasW - CONFIG.PAD - xPad);
+        fig.y = p.random(yTop, Math.max(yTop + 1, yBot));
+      } else {
+        if (hasPrev) {
+          fig.x *= sx;
+          fig.y *= sy;
+        }
+        fig.x = p.constrain(fig.x, CONFIG.PAD + xPad, canvasW - CONFIG.PAD - xPad);
+      }
     }
   }
 
@@ -399,14 +412,20 @@
     };
 
     p.windowResized = () => {
+      const prevW = canvasW;
+      const prevH = canvasH;
       syncCanvasToWindow(p);
       p.resizeCanvas(canvasW, canvasH);
-      remapCrowd(p);
+      remapCrowd(p, prevW, prevH);
     };
 
     p.keyPressed = () => {
       if (p.key === "d" || p.key === "D") {
         triggerDeath();
+        return false;
+      }
+      if (p.key === "f" || p.key === "F") {
+        p.fullscreen(!p.fullscreen());
         return false;
       }
       return true;
