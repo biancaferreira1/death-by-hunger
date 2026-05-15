@@ -13,8 +13,9 @@
     CROWD_SIZE: 300,
     PAD: 18,
     SPRITE_DRAW_W: 2.35,
-    DYING_STEP: 0.06,
-    /** Max upward speed for souls (dying + ascending), after ramp-up. */
+    /** Ms off-screen before same slot respawns at bottom (frame-based, not setTimeout). */
+    EXIT_DORMANT_MS: 3000,
+    /** Max upward speed while exiting; ramps from ASCEND_ACCEL. */
     ASCEND_SPEED: 2,
     /** Added per frame until ASCEND_SPEED; keeps motion from jumping to full speed. */
     ASCEND_ACCEL: 0.035,
@@ -34,10 +35,8 @@
     /** Alive silhouettes — darker than semi-transparent white ghosts. */
     LIVE_TINT: [68, 68, 68],
     DEAD_TINT: [255, 255, 255],
-    /** Alpha for dead (dying / ascending); drawn after alive so they read in front. */
+    /** Alpha for exiting (dead+halo) sprites; drawn after alive so they read in front. */
     DEAD_ALPHA: 160,
-    /** Ease for alive→dead crossfade (0 = linear). */
-    DYING_USE_SMOOTHSTEP: true,
     /** Ms from birth until fully visible; only then age toward death eligibility. */
     SPAWN_FADE_MS: 3200,
     /** Ms fully visible (after fade) before random/API death can apply. */
@@ -58,7 +57,7 @@
 
   let lastSimAt = 0;
   let deathAcc = 0;
-  /** Set at start of each draw for fade/ddeath eligibility (API may call between frames). */
+  /** Set at start of each draw for fade / dormant / death eligibility (API may call between frames). */
   let clockMs = 0;
 
   function precomputeFrameMetadata(img) {
@@ -227,7 +226,8 @@
       animOffset: Math.floor(p.random(CONFIG.ALIVE_FRAME_COUNT)),
       bornAt: p.millis() - bornOffsetMs,
       state: "alive",
-      fillAmt: 0,
+      ascendVel: 0,
+      dormantWakeAt: null,
     };
   }
 
@@ -247,8 +247,7 @@
     if (aliveIdx.length === 0) return false;
     const pick = aliveIdx[Math.floor(Math.random() * aliveIdx.length)];
     const fig = figures[pick];
-    fig.state = "dying";
-    fig.fillAmt = 0;
+    fig.state = "exiting";
     fig.ascendVel = 0;
     return true;
   }
@@ -272,21 +271,18 @@
     const vAccel = CONFIG.ASCEND_ACCEL * ms;
     for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
-      if (fig.state === "dying") {
-        fig.fillAmt += CONFIG.DYING_STEP;
+      if (fig.state === "exiting") {
         fig.ascendVel = Math.min(vCap, (fig.ascendVel ?? 0) + vAccel);
         fig.y -= fig.ascendVel;
-        if (fig.fillAmt >= 1) {
-          fig.fillAmt = 1;
-          fig.state = "ascending";
-        }
-      } else if (fig.state === "ascending") {
-        fig.ascendVel = Math.min(vCap, (fig.ascendVel ?? 0) + vAccel);
-        fig.y -= fig.ascendVel;
-        if (fig.y < -personDrawH(fig.size) * 0.55) {
-          fig.state = "alive";
-          fig.fillAmt = 0;
+        if (fig.y < 0) {
+          fig.state = "dormant";
           fig.ascendVel = 0;
+          fig.dormantWakeAt = clockMs + CONFIG.EXIT_DORMANT_MS;
+        }
+      } else if (fig.state === "dormant") {
+        if (fig.dormantWakeAt != null && clockMs >= fig.dormantWakeAt) {
+          fig.dormantWakeAt = null;
+          fig.state = "alive";
           resetFigureToCrowd(p, fig);
         }
       }
@@ -302,6 +298,8 @@
     const stride = CONFIG.ALIVE_FRAME_COUNT;
     const phase = (walkTick + (fig.animOffset ?? 0)) % stride;
 
+    if (fig.state === "dormant") return;
+
     const fi = fadeInAt(fig);
     if (fig.state === "alive" && fi <= 0) return;
 
@@ -312,40 +310,22 @@
     p.translate(fig.x, fig.y);
     p.imageMode(p.CENTER);
 
-    if (fig.state === "dying") {
-      let u = Math.min(1, Math.max(0, fig.fillAmt));
-      if (CONFIG.DYING_USE_SMOOTHSTEP) {
-        u = u * u * (3 - 2 * u);
-      }
-      const drawLayer = (col, alpha) => {
-        if (alpha <= 0.002) return;
-        const meta = frameMeta[row][col];
-        const { sw, sh, sfx, sfy } = meta;
-        const cx = dw * (0.5 - sfx / sw);
-        const cy = dh * (0.5 - sfy / sh);
-        p.tint(255, 255, 255, Math.round(255 * alpha));
-        p.image(tintedFrames[col], cx, cy, dw, dh, 0, 0, sw, sh);
-      };
-      drawLayer(phase, 1 - u);
-      drawLayer(stride + phase, u);
+    const col =
+      fig.state === "alive" ? phase : stride + phase;
+    const meta = frameMeta[row][col];
+    const { sw, sh, sfx, sfy } = meta;
+    const cx = dw * (0.5 - sfx / sw);
+    const cy = dh * (0.5 - sfy / sh);
+    const tex = tintedFrames[col];
+
+    if (fig.state === "alive" && fi < 1) {
+      p.tint(255, 255, 255, Math.round(255 * fi));
+    }
+
+    p.image(tex, cx, cy, dw, dh, 0, 0, sw, sh);
+
+    if (fig.state === "alive" && fi < 1) {
       p.noTint();
-    } else {
-      const col = fig.state === "alive" ? phase : stride + phase;
-      const meta = frameMeta[row][col];
-      const { sw, sh, sfx, sfy } = meta;
-      const cx = dw * (0.5 - sfx / sw);
-      const cy = dh * (0.5 - sfy / sh);
-      const tex = tintedFrames[col];
-
-      if (fig.state === "alive" && fi < 1) {
-        p.tint(255, 255, 255, Math.round(255 * fi));
-      }
-
-      p.image(tex, cx, cy, dw, dh, 0, 0, sw, sh);
-
-      if (fig.state === "alive" && fi < 1) {
-        p.noTint();
-      }
     }
 
     p.pop();
@@ -367,7 +347,7 @@
       if (fig.state === "alive") {
         fig.x = p.random(CONFIG.PAD + xPad, canvasW - CONFIG.PAD - xPad);
         fig.y = p.random(yTop, Math.max(yTop + 1, yBot));
-      } else {
+      } else if (fig.state === "exiting" || fig.state === "dormant") {
         if (hasPrev) {
           fig.x *= sx;
           fig.y *= sy;
@@ -410,7 +390,7 @@
         if (figures[i].state === "alive") drawPersonSprite(p, figures[i]);
       }
       for (let i = 0; i < figures.length; i++) {
-        if (figures[i].state !== "alive") drawPersonSprite(p, figures[i]);
+        if (figures[i].state === "exiting") drawPersonSprite(p, figures[i]);
       }
       endScene(p);
     };

@@ -1,0 +1,7 @@
+README.md
+src/sketch.js
+prompts/queue/prompt.md
+prompts/runs/2026-05-13-exit-dormant-lifecycle/prompt.md
+prompts/runs/2026-05-13-exit-dormant-lifecycle/result-summary.md
+prompts/runs/2026-05-13-exit-dormant-lifecycle/verification.md
+prompts/runs/2026-05-13-exit-dormant-lifecycle/changed-files.txt
