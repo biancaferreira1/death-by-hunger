@@ -7,3 +7,5 @@
 - **`index.html`** — Page title set to **Death by Hunger**.
 - **`style.css`** — Page background set to white so letterboxing matches the sketch.
 - **`prompts/queue/change-to-people.md`** — Removed after run completion (queue retains `.gitkeep`).
+
+An extension (fixed pool / recycle) was later filed as **`prompts/runs/2026-05-12-recycle-crowd-pool`** after mistaken edits to this folder’s `prompt.md`.

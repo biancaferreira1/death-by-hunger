@@ -9,7 +9,7 @@
 
   const CONFIG = {
     SIZE: 400,
-    CROWD_SIZE: 100,
+    CROWD_SIZE: 300,
     PAD: 18,
     SPRITE_DRAW_W: 2.35,
     DYING_STEP: 0.06,
@@ -195,6 +195,22 @@
     );
   }
 
+  function resetFigureToCrowd(p, fig) {
+    fig.size = p.random(6, 11);
+    fig.phase = p.random(p.TWO_PI);
+    fig.animOffset = Math.floor(p.random(CONFIG.ALIVE_FRAME_COUNT));
+    fig.bornAt = p.millis();
+    const dw = personDrawW(fig.size);
+    const dh = personDrawH(fig.size);
+    const xPad = dw * 0.52;
+    const yTop = CONFIG.PAD + dh * 0.58;
+    const yBot = CONFIG.SIZE - CONFIG.PAD - dh * 0.52;
+    const mid = yTop + (yBot - yTop) * 0.5;
+    const yLo = Math.max(mid, yTop + 1);
+    fig.x = p.random(CONFIG.PAD + xPad, CONFIG.SIZE - CONFIG.PAD - xPad);
+    fig.y = p.random(yLo, Math.max(yLo + 1, yBot));
+  }
+
   function makeFigure(p, bornOffsetMs) {
     const size = p.random(6, 11);
     const dw = personDrawW(size);
@@ -250,7 +266,7 @@
   }
 
   function updateFigures(p) {
-    for (let i = figures.length - 1; i >= 0; i--) {
+    for (let i = 0; i < figures.length; i++) {
       const fig = figures[i];
       if (fig.state === "dying") {
         fig.fillAmt += CONFIG.DYING_STEP;
@@ -264,8 +280,10 @@
         fig.ascendVel = Math.min(CONFIG.ASCEND_SPEED, (fig.ascendVel ?? 0) + CONFIG.ASCEND_ACCEL);
         fig.y -= fig.ascendVel;
         if (fig.y < -personDrawH(fig.size) * 0.55) {
-          figures.splice(i, 1);
-          figures.push(makeFigure(p, 0));
+          fig.state = "alive";
+          fig.fillAmt = 0;
+          fig.ascendVel = 0;
+          resetFigureToCrowd(p, fig);
         }
       }
     }
